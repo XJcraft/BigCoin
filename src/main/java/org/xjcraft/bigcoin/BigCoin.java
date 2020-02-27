@@ -1,0 +1,20 @@
+package org.xjcraft.bigcoin;
+
+import org.xjcraft.CommonPlugin;
+import org.xjcraft.bigcoin.listener.HoverListener;
+
+public final class BigCoin extends CommonPlugin {
+
+    @Override
+    public void onEnable() {
+        // Plugin startup logic
+        loadConfigs();
+        BigCoinManager manager = new BigCoinManager(this);
+        getServer().getPluginManager().registerEvents(new HoverListener(this,manager),this);
+    }
+
+    @Override
+    public void onDisable() {
+        // Plugin shutdown logic
+    }
+}
