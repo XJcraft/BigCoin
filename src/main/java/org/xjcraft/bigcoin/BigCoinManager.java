@@ -21,6 +21,7 @@ import org.xjcraft.utils.MathUtil;
 import org.xjcraft.utils.StringUtil;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 public class BigCoinManager {
@@ -29,6 +30,7 @@ public class BigCoinManager {
     Checker checker;
     int boost = 0;
     Material[] quest = null;
+    int[] needs = null;
 
     public BigCoinManager(BigCoin plugin) {
 
@@ -53,18 +55,18 @@ public class BigCoinManager {
                     put("people", winners.size() + "");
                     put("amount", String.format("%.2f", v));
                 }}));
-                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, ()->{
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                     BigDecimal price = new BigDecimal(v);
                     OperateResult result = CurrencyService.reserveIncr(Config.config.getCurrency(), price, Config.config.getOwner());
-                    if (!result.getSuccess()){
-                        plugin.getLogger().warning("fail to increase reserve because:"+result.getReason());
+                    if (!result.getSuccess()) {
+                        plugin.getLogger().warning("fail to increase reserve because:" + result.getReason());
                         return;
                     }
-                    price = price.divide(new BigDecimal(winners.size()));
+                    price = price.divide(new BigDecimal(winners.size()), 2, RoundingMode.DOWN);
                     for (String winner : winners) {
                         result = BankService.transferTo("$" + Config.config.getCurrency(), winner, Config.config.getCurrency(), price, TxTypeEnum.ELECTRONIC_TRANSFER_OUT, "BigCoin");
-                        if (!result.getSuccess()){
-                            plugin.getLogger().warning("fail to transfer because:"+result.getReason());
+                        if (!result.getSuccess()) {
+                            plugin.getLogger().warning("fail to transfer because:" + result.getReason());
                             return;
                         }
                     }
@@ -96,6 +98,7 @@ public class BigCoinManager {
     public List<String> getWinners(World world) {
         List<String> winners = new ArrayList<>();
         Chunk[] loadedChunks = world.getLoadedChunks();
+
         for (Chunk chunk : loadedChunks) {
             Map<String, String> map = MinersConfig.config.getHoppers().get(String.format("%s,%s", chunk.getX(), chunk.getZ()));
             if (map == null) continue;
@@ -140,7 +143,7 @@ public class BigCoinManager {
                 name += ";";
             }
             plugin.getLogger().info("generate new quest:" + name);
-            int[] needs = new int[5];
+            needs = new int[5];
             for (int i = 0; i < 5; i++) {
                 if (i > boost) {
                     needs[i] = 0;
@@ -163,12 +166,7 @@ public class BigCoinManager {
                         String position = entry.getKey();
                         String[] split = position.split(",");
                         Block block = world.getBlockAt(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
-                        if (block.getState() instanceof Hopper) {
-                            Inventory inventory = ((Hopper) block.getState()).getInventory();
-                            for (int i = 0; i < 5; i++) {
-                                inventory.setItem(i, new ItemStack(quest[i], quest[i].getMaxStackSize() - needs[i]));
-                            }
-                        }
+                        refresh(block);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -178,6 +176,30 @@ public class BigCoinManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void refresh(Block block) {
+        if (block.getState() instanceof Hopper) {
+            Inventory inventory = ((Hopper) block.getState()).getInventory();
+            refresh(inventory);
+        }
+    }
+
+    public void refresh(Inventory inventory) {
+        if (!hasRefreshed(inventory))
+            for (int i = 0; i < 5; i++) {
+                inventory.setItem(i, new ItemStack(quest[i], quest[i].getMaxStackSize() - needs[i]));
+            }
+    }
+
+    private boolean hasRefreshed(Inventory inventory) {
+
+        for (int i = 0; i < 5; i++) {
+            if (inventory.getItem(i) == null || inventory.getItem(i).getType() != quest[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean registerMiner(Location block, Player player) {
@@ -193,7 +215,8 @@ public class BigCoinManager {
 
     public String getMinerOwner(Location block) {
         Chunk chunk = block.getChunk();
-        Map<String, String> map = MinersConfig.config.getHoppers().computeIfAbsent(String.format("%s,%s", chunk.getX(), chunk.getZ()), k -> new HashMap<>());
+        Map<String, String> map = MinersConfig.config.getHoppers().get(String.format("%s,%s", chunk.getX(), chunk.getZ()));
+        if (map == null) return null;
         String positon = String.format("%s,%s,%s", block.getBlockX(), block.getBlockY(), block.getBlockZ());
         return map.get(positon);
 
@@ -209,6 +232,7 @@ public class BigCoinManager {
         return true;
 
     }
+
 
     class Checker extends TimerTask {
         private int count = 0;

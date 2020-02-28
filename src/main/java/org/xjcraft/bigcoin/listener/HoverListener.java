@@ -39,6 +39,7 @@ public class HoverListener implements Listener {
                 if (success) {
                     event.getPlayer().sendMessage(MessageConfig.config.getCreateMinerSuccess());
                     event.setLine(1, event.getPlayer().getName());
+                    manager.refresh(depBlock);
                 } else {
                     event.getPlayer().sendMessage(MessageConfig.config.getCreateMinerFail());
                     event.setLine(0, "");
@@ -93,7 +94,7 @@ public class HoverListener implements Listener {
     public void click(InventoryClickEvent event) {
         InventoryHolder holder = event.getInventory().getHolder();
         if (holder instanceof Hopper) {
-            if (event.getAction()== InventoryAction.CLONE_STACK)return;
+            if (event.getAction() == InventoryAction.CLONE_STACK) return;
             Location location = ((Hopper) holder).getLocation();
             String minerOwner = manager.getMinerOwner(location);
             if (minerOwner != null) {
@@ -104,7 +105,14 @@ public class HoverListener implements Listener {
 
     @EventHandler
     public void open(InventoryOpenEvent event) {
-
+        InventoryHolder holder = event.getInventory().getHolder();
+        if (holder instanceof Hopper) {
+            Location location = ((Hopper) holder).getLocation();
+            String minerOwner = manager.getMinerOwner(location);
+            if (minerOwner != null) {
+                manager.refresh(event.getInventory());
+            }
+        }
     }
 
     @EventHandler
