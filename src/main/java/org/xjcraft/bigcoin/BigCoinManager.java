@@ -4,6 +4,7 @@ import com.zjyl1994.minecraftplugin.multicurrency.services.BankService;
 import com.zjyl1994.minecraftplugin.multicurrency.services.CurrencyService;
 import com.zjyl1994.minecraftplugin.multicurrency.utils.OperateResult;
 import com.zjyl1994.minecraftplugin.multicurrency.utils.TxTypeEnum;
+import lombok.Getter;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -46,38 +47,12 @@ public class BigCoinManager {
                 plugin.getLogger().warning("需要先配置世界！");
                 return;
             }
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                check2(world);
+                plugin.getServer().getScheduler().runTaskLater(plugin, this::newQuest, 1);
+            }, 1);
 
-            List<String> winners = getWinners(world);
-            if (winners.size() > 0) {
-                boost++;
-                double v = Config.config.getBase() * ((1 + Math.min(boost, Config.config.getMaxBoost())) * Config.config.getBoost());
-                plugin.getServer().broadcastMessage(StringUtil.applyPlaceHolder(MessageConfig.config.getWinners(), new HashMap<String, String>() {{
-                    put("people", winners.size() + "");
-                    put("amount", String.format("%.2f", v));
-                }}));
-                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-                    BigDecimal price = new BigDecimal(v);
-                    OperateResult result = CurrencyService.reserveIncr(Config.config.getCurrency(), price, Config.config.getOwner());
-                    if (!result.getSuccess()) {
-                        plugin.getLogger().warning("fail to increase reserve because:" + result.getReason());
-                        return;
-                    }
-                    price = price.divide(new BigDecimal(winners.size()), 2, RoundingMode.DOWN);
-                    for (String winner : winners) {
-                        result = BankService.transferTo("$" + Config.config.getCurrency(), winner, Config.config.getCurrency(), price, TxTypeEnum.ELECTRONIC_TRANSFER_OUT, "BigCoin");
-                        if (!result.getSuccess()) {
-                            plugin.getLogger().warning("fail to transfer because:" + result.getReason());
-                            return;
-                        }
-                    }
 
-                });
-            } else {
-                boost--;
-                if (boost < 0) boost = 0;
-            }
-
-            plugin.getServer().getScheduler().runTask(plugin, this::newQuest);
         } else {
             if (ItemsConfig.config.getItems().size() == 0) {
                 for (Material value : Material.values()) {
@@ -95,11 +70,44 @@ public class BigCoinManager {
 
     }
 
+    public void check2(World world) {
+        List<String> winners = getWinners(world);
+        if (winners.size() > 0) {
+            boost++;
+            double v = Config.config.getBase() * ((Math.min(boost, Config.config.getMaxBoost())) * Config.config.getBoost() + 1);
+            plugin.getServer().broadcastMessage(StringUtil.applyPlaceHolder(MessageConfig.config.getWinners(), new HashMap<String, String>() {{
+                put("people", winners.size() + "");
+                put("amount", String.format("%.2f", v));
+            }}));
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                BigDecimal price = new BigDecimal(v);
+                OperateResult result = CurrencyService.reserveIncr(Config.config.getCurrency(), price, Config.config.getOwner());
+                if (!result.getSuccess()) {
+                    plugin.getLogger().warning("fail to increase reserve because:" + result.getReason());
+                    return;
+                }
+                price = price.divide(new BigDecimal(winners.size()), 2, RoundingMode.DOWN);
+                for (String winner : winners) {
+                    result = BankService.transferTo("$" + Config.config.getCurrency(), winner, Config.config.getCurrency(), price, TxTypeEnum.ELECTRONIC_TRANSFER_OUT, "BigCoin");
+                    if (!result.getSuccess()) {
+                        plugin.getLogger().warning("fail to transfer because:" + result.getReason());
+                        return;
+                    }
+                }
+
+            });
+        } else {
+            boost--;
+            if (boost < 0) boost = 0;
+        }
+    }
+
     public List<String> getWinners(World world) {
         List<String> winners = new ArrayList<>();
         Chunk[] loadedChunks = world.getLoadedChunks();
 
         for (Chunk chunk : loadedChunks) {
+            if (!chunk.isLoaded()) continue;
             Map<String, String> map = MinersConfig.config.getHoppers().get(String.format("%s,%s", chunk.getX(), chunk.getZ()));
             if (map == null) continue;
             for (Map.Entry<String, String> entry : map.entrySet()) {
@@ -233,8 +241,14 @@ public class BigCoinManager {
 
     }
 
+    public int getRemainTime() {
+        return checker.getCount();
+
+    }
+
 
     class Checker extends TimerTask {
+        @Getter
         private int count = 0;
 
         @Override
@@ -242,7 +256,8 @@ public class BigCoinManager {
             if (count == 0) {
                 plugin.getServer().broadcastMessage(MessageConfig.config.getTimeOver());
                 count = Config.config.getPeriod();
-                plugin.getServer().getScheduler().runTask(plugin, BigCoinManager.this::checker);
+                checker();
+//                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, BigCoinManager.this::checker);
             } else if (count < 5) {
                 plugin.getServer().broadcastMessage(StringUtil.applyPlaceHolder(MessageConfig.config.getTimeLeft(), new HashMap<String, String>() {{
                     put("count", count + "");

@@ -10,7 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.inventory.*;
-import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.xjcraft.bigcoin.BigCoin;
@@ -18,7 +17,9 @@ import org.xjcraft.bigcoin.BigCoinManager;
 import org.xjcraft.bigcoin.config.Config;
 import org.xjcraft.bigcoin.config.MessageConfig;
 import org.xjcraft.bigcoin.util.SignUtils;
+import org.xjcraft.utils.StringUtil;
 
+import java.util.HashMap;
 import java.util.Objects;
 
 public class HoverListener implements Listener {
@@ -111,12 +112,12 @@ public class HoverListener implements Listener {
             String minerOwner = manager.getMinerOwner(location);
             if (minerOwner != null) {
                 manager.refresh(event.getInventory());
+                event.getPlayer().sendMessage(StringUtil.applyPlaceHolder(MessageConfig.config.getTimeLeft(), new HashMap<String, String>() {{
+                    put("count", manager.getRemainTime() + "");
+                }}));
             }
         }
     }
 
-    @EventHandler
-    public void load(ChunkLoadEvent event) {
 
-    }
 }
