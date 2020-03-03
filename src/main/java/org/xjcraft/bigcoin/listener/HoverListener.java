@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.block.Hopper;
+import org.bukkit.block.Sign;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -74,8 +75,10 @@ public class HoverListener implements Listener {
                 Inventory inventory = ((Container) block.getState()).getInventory();
                 inventory.clear();
             }
-        } else if (SignUtils.isSign(block.getType())) {
-
+        } else if (block.getState() instanceof Sign) {
+            if (((Sign) block.getState()).getLine(0).equals(Config.config.getName())) {
+                event.setCancelled(true);
+            }
         }
     }
 

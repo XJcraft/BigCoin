@@ -235,6 +235,7 @@ public class BigCoinManager {
         Map<String, String> map = MinersConfig.config.getHoppers().computeIfAbsent(String.format("%s,%s", chunk.getX(), chunk.getZ()), k -> new HashMap<>());
         String positon = String.format("%s,%s,%s", block.getBlockX(), block.getBlockY(), block.getBlockZ());
         String remove = map.remove(positon);
+        if (map.size() == 0) MinersConfig.config.getHoppers().remove(String.format("%s,%s", chunk.getX(), chunk.getZ()));
         if (remove == null) return false;
         plugin.saveConfig(MinersConfig.class);
         return true;
