@@ -153,7 +153,7 @@ public class BigCoinManager {
 
             for (int i = 0; i < 5; i++) {
                 quest[i] = Material.valueOf(ItemsConfig.config.getItems().get(MathUtil.random(0, ItemsConfig.config.getItems().size() - 1)));
-                if (i > DataConfig.config.getBoost()) {
+                if (i > DataConfig.config.getBoost() / 2) {
                     needs[i] = 0;
                 } else {
                     needs[i] = MathUtil.random(1, Config.config.getMaxItem());
