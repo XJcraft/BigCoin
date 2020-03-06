@@ -4,6 +4,7 @@ import com.zjyl1994.minecraftplugin.multicurrency.services.BankService;
 import com.zjyl1994.minecraftplugin.multicurrency.services.CurrencyService;
 import com.zjyl1994.minecraftplugin.multicurrency.utils.OperateResult;
 import com.zjyl1994.minecraftplugin.multicurrency.utils.TxTypeEnum;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -14,10 +15,7 @@ import org.bukkit.block.Hopper;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.xjcraft.bigcoin.config.Config;
-import org.xjcraft.bigcoin.config.ItemsConfig;
-import org.xjcraft.bigcoin.config.MessageConfig;
-import org.xjcraft.bigcoin.config.MinersConfig;
+import org.xjcraft.bigcoin.config.*;
 import org.xjcraft.utils.MathUtil;
 import org.xjcraft.utils.StringUtil;
 
@@ -29,14 +27,21 @@ public class BigCoinManager {
     private BigCoin plugin;
     private Timer timer = new Timer();
     Checker checker;
-    int boost = 0;
     Material[] quest = null;
     int[] needs = null;
 
     public BigCoinManager(BigCoin plugin) {
-
         this.plugin = plugin;
-        checker = new Checker();
+        checker = new Checker(DataConfig.config.getCount());
+        if (DataConfig.config.getMaterials() != null && DataConfig.config.getNeeds() != null) {
+            quest = new Material[5];
+            needs = new int[5];
+            for (int i = 0; i < 5; i++) {
+                quest[i] = Material.valueOf(DataConfig.config.getMaterials().get(i));
+                needs[i] = DataConfig.config.getNeeds().get(i);
+            }
+            printQuest();
+        }
         timer.schedule(checker, 1000L, 1000L * 60L);
     }
 
@@ -73,8 +78,8 @@ public class BigCoinManager {
     public void check2(World world) {
         List<String> winners = getWinners(world);
         if (winners.size() > 0) {
-            boost++;
-            double v = Config.config.getBase() * ((Math.min(boost, Config.config.getMaxBoost())) * Config.config.getBoost() + 1);
+            DataConfig.config.setBoost(DataConfig.config.getBoost() + 1);
+            double v = Config.config.getBase() * ((Math.min(DataConfig.config.getBoost(), Config.config.getMaxBoost())) * Config.config.getBoost() + 1);
             plugin.getServer().broadcastMessage(StringUtil.applyPlaceHolder(MessageConfig.config.getWinners(), new HashMap<String, String>() {{
                 put("people", winners.size() + "");
                 put("amount", String.format("%.2f", v));
@@ -97,8 +102,8 @@ public class BigCoinManager {
 
             });
         } else {
-            boost--;
-            if (boost < 0) boost = 0;
+            DataConfig.config.setBoost(DataConfig.config.getBoost() - 1);
+            if (DataConfig.config.getBoost() < 0) DataConfig.config.setBoost(0);
         }
     }
 
@@ -144,21 +149,19 @@ public class BigCoinManager {
     public void newQuest() {
         try {
             quest = new Material[5];
-            String name = "";
+            needs = new int[5];
+
             for (int i = 0; i < 5; i++) {
                 quest[i] = Material.valueOf(ItemsConfig.config.getItems().get(MathUtil.random(0, ItemsConfig.config.getItems().size() - 1)));
-                name += quest[i].name();
-                name += ";";
-            }
-            plugin.getLogger().info("generate new quest:" + name);
-            needs = new int[5];
-            for (int i = 0; i < 5; i++) {
-                if (i > boost) {
+                if (i > DataConfig.config.getBoost()) {
                     needs[i] = 0;
                 } else {
                     needs[i] = MathUtil.random(1, Config.config.getMaxItem());
                 }
+
             }
+            printQuest();
+
             World world = plugin.getServer().getWorld(Config.config.getWorld());
             if (world == null) {
                 plugin.getLogger().warning("需要先配置世界！");
@@ -181,9 +184,21 @@ public class BigCoinManager {
 
                 }
             }
+            saveQuest();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void printQuest() {
+        String name = "";
+        for (int i = 0; i < 5; i++) {
+            name += quest[i].name();
+            name += "*";
+            name += needs[i];
+            name += ";";
+        }
+        plugin.getLogger().info("generate or load quest:" + name);
     }
 
     public void refresh(Block block) {
@@ -247,10 +262,27 @@ public class BigCoinManager {
 
     }
 
+    public void saveQuest() {
+        DataConfig.config.setMaterials(new ArrayList<String>(5));
+        for (int i = 0; i < quest.length; i++) {
+            Material material = quest[i];
+            DataConfig.config.getMaterials().add(i, material.name());
+        }
 
+        DataConfig.config.setNeeds(new ArrayList<Integer>(5));
+        for (int i = 0; i < needs.length; i++) {
+            int need = needs[i];
+            DataConfig.config.getNeeds().add(i, need);
+        }
+        DataConfig.config.setCount(checker.count);
+        plugin.saveConfig(DataConfig.class);
+    }
+
+    @AllArgsConstructor
     class Checker extends TimerTask {
         @Getter
-        private int count = 0;
+        private int count;
+
 
         @Override
         public void run() {
