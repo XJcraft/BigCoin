@@ -78,7 +78,7 @@ public class BigCoinManager {
     public void check2(World world) {
         List<String> winners = getWinners(world);
         if (winners.size() > 0) {
-            DataConfig.config.setBoost(DataConfig.config.getBoost() + 1);
+            DataConfig.config.setBoost(Math.min(DataConfig.config.getBoost() + 1, Config.config.getMaxBoost()));
             double v = Config.config.getBase() * ((Math.min(DataConfig.config.getBoost(), Config.config.getMaxBoost())) * Config.config.getBoost() + 1);
             plugin.getServer().broadcastMessage(StringUtil.applyPlaceHolder(MessageConfig.config.getWinners(), new HashMap<String, String>() {{
                 put("people", winners.size() + "");
@@ -102,7 +102,7 @@ public class BigCoinManager {
 
             });
         } else {
-            DataConfig.config.setBoost(DataConfig.config.getBoost() - 1);
+            DataConfig.config.setBoost(DataConfig.config.getBoost() - Config.config.getBoostDecrease());
             if (DataConfig.config.getBoost() < 0) DataConfig.config.setBoost(0);
         }
     }
@@ -153,7 +153,7 @@ public class BigCoinManager {
 
             for (int i = 0; i < 5; i++) {
                 quest[i] = Material.valueOf(ItemsConfig.config.getItems().get(MathUtil.random(0, ItemsConfig.config.getItems().size() - 1)));
-                if (i > DataConfig.config.getBoost() / Config.config.getPeriod()) {
+                if (i > (DataConfig.config.getBoost() / Config.config.getStep())) {
                     needs[i] = 0;
                 } else {
                     needs[i] = MathUtil.random(1, Config.config.getMaxItem());

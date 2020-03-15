@@ -20,6 +20,8 @@ public class Config {
     Double boost = 0.1;
     @Comment("最大加成比例")
     Integer maxBoost = 10;
+    @Comment("失败时")
+    Integer boostDecrease = 10;
     @Comment("基础货币数量")
     Integer base = 100;
     @Comment("需要几次boost难度提升")
