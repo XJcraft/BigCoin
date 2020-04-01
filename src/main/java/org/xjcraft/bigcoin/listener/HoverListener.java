@@ -10,6 +10,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -20,7 +21,9 @@ import org.xjcraft.bigcoin.config.MessageConfig;
 import org.xjcraft.bigcoin.util.SignUtils;
 import org.xjcraft.utils.StringUtil;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 
 public class HoverListener implements Listener {
@@ -118,6 +121,20 @@ public class HoverListener implements Listener {
                 event.getPlayer().sendMessage(StringUtil.applyPlaceHolder(MessageConfig.config.getTimeLeft(), new HashMap<String, String>() {{
                     put("count", manager.getRemainTime() + "");
                 }}));
+            }
+        }
+    }
+
+    @EventHandler
+    public void explode(EntityExplodeEvent event) {
+        List<Block> blocks = event.blockList();
+        ArrayList<Block> list = new ArrayList<>(blocks);
+        for (Block block : list) {
+            if (block.getType() == Material.HOPPER) {
+                String minerOwner = manager.getMinerOwner(block.getLocation());
+                if (minerOwner != null) {
+                    blocks.remove(block);
+                }
             }
         }
     }
