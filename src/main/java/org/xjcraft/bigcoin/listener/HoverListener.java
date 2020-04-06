@@ -6,10 +6,12 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.block.Hopper;
 import org.bukkit.block.Sign;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
@@ -72,6 +74,10 @@ public class HoverListener implements Listener {
     @EventHandler
     public void bbreak(BlockBreakEvent event) {
         Block block = event.getBlock();
+        breakMiner(event, block);
+    }
+
+    public void breakMiner(Cancellable event, Block block) {
         if (block.getType() == Material.HOPPER) {
             boolean success = manager.destroyMiner(block.getLocation());
             if (success) {
@@ -126,14 +132,21 @@ public class HoverListener implements Listener {
     }
 
     @EventHandler
+    public void change(EntityChangeBlockEvent event) {
+        Block block = event.getBlock();
+        breakMiner(event, block);
+    }
+
+    @EventHandler
     public void explode(EntityExplodeEvent event) {
         List<Block> blocks = event.blockList();
         ArrayList<Block> list = new ArrayList<>(blocks);
         for (Block block : list) {
             if (block.getType() == Material.HOPPER) {
-                String minerOwner = manager.getMinerOwner(block.getLocation());
-                if (minerOwner != null) {
-                    blocks.remove(block);
+                boolean success = manager.destroyMiner(block.getLocation());
+                if (success) {
+                    Inventory inventory = ((Container) block.getState()).getInventory();
+                    inventory.clear();
                 }
             }
         }
