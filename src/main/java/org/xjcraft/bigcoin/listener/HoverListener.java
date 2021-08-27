@@ -61,12 +61,13 @@ public class HoverListener implements Listener {
 
     @EventHandler
     public void active(InventoryMoveItemEvent event) {
-        InventoryHolder holder = event.getSource().getHolder();
-        if (holder instanceof Hopper) {
-            Location location = ((Hopper) holder).getLocation();
-            String minerOwner = manager.getMinerOwner(location);
-            if (minerOwner != null) {
-                event.setCancelled(true);
+        if (event.getSource().getType() == InventoryType.HOPPER) {
+            Location location = event.getSource().getLocation();
+            if (location != null) {
+                String minerOwner = manager.getMinerOwner(location);
+                if (minerOwner != null) {
+                    event.setCancelled(true);
+                }
             }
         }
     }
