@@ -84,6 +84,7 @@ public class BigCoinManager {
                 put("people", winners.size() + "");
                 put("amount", String.format("%.2f", v));
             }}));
+            plugin.getLogger().info("winners:" + StringUtil.join(winners.toArray(), ","));
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 BigDecimal price = new BigDecimal(v);
                 OperateResult result = CurrencyService.reserveIncr(Config.config.getCurrency(), price, Config.config.getOwner());
