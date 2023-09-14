@@ -3,4 +3,6 @@ version: ${project.version}
 main: org.xjcraft.bigcoin.BigCoin
 api-version: '1.13'
 depend: [SimpleSpigot, MultiCurrency]
+softdepend:
+  - XJLogin
 authors: [reezhu]

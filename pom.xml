@@ -89,5 +89,10 @@
             <version>LATEST</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.xjcraft</groupId>
+            <artifactId>XJLogin</artifactId>
+            <version>1.0.1</version>
+        </dependency>
     </dependencies>
 </project>

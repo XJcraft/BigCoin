@@ -15,6 +15,7 @@ import org.bukkit.block.Hopper;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.xjcraft.bigcoin.api.XJLogin;
 import org.xjcraft.bigcoin.config.*;
 import org.xjcraft.utils.MathUtil;
 import org.xjcraft.utils.StringUtil;
@@ -80,10 +81,14 @@ public class BigCoinManager {
         if (winners.size() > 0) {
             DataConfig.config.setBoost(Math.min(DataConfig.config.getBoost() + 1, Config.config.getMaxBoost()));
             double v = Config.config.getBase() * ((Math.min(DataConfig.config.getBoost(), Config.config.getMaxBoost())) * Config.config.getBoost() + 1);
-            plugin.getServer().broadcastMessage(StringUtil.applyPlaceHolder(MessageConfig.config.getWinners(), new HashMap<String, String>() {{
+            String message = StringUtil.applyPlaceHolder(MessageConfig.config.getWinners(), new HashMap<String, String>() {{
                 put("people", winners.size() + "");
                 put("amount", String.format("%.2f", v));
-            }}));
+            }});
+            if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+                XJLogin.sendMessage(message);
+            }
+            plugin.getServer().broadcastMessage(message);
             plugin.getLogger().info("winners:" + StringUtil.join(winners.toArray(), ","));
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 BigDecimal price = new BigDecimal(v);
