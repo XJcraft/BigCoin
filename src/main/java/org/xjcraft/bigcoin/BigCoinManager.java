@@ -86,9 +86,10 @@ public class BigCoinManager {
                 put("amount", String.format("%.2f", v));
             }});
             if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
-                XJLogin.sendMessage(message);
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(message));
             }
             plugin.getServer().broadcastMessage(message);
+            plugin.getLogger().info(message);
             plugin.getLogger().info("winners:" + StringUtil.join(winners.toArray(), ","));
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 BigDecimal price = new BigDecimal(v);
@@ -205,6 +206,10 @@ public class BigCoinManager {
             name += ";";
         }
         plugin.getLogger().info("generate or load quest:" + name);
+        if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+            String message = "当前回合矿机需求为:" + name;
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(message));
+        }
     }
 
     public void refresh(Block block) {
@@ -294,13 +299,20 @@ public class BigCoinManager {
         public void run() {
             if (count == 0) {
                 plugin.getServer().broadcastMessage(MessageConfig.config.getTimeOver());
+                if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(MessageConfig.config.getTimeOver()));
+                }
                 count = Config.config.getPeriod();
                 checker();
 //                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, BigCoinManager.this::checker);
             } else if (count < 5) {
-                plugin.getServer().broadcastMessage(StringUtil.applyPlaceHolder(MessageConfig.config.getTimeLeft(), new HashMap<String, String>() {{
+                String message = StringUtil.applyPlaceHolder(MessageConfig.config.getTimeLeft(), new HashMap<String, String>() {{
                     put("count", count + "");
-                }}));
+                }});
+                plugin.getServer().broadcastMessage(message);
+                if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(message));
+                }
             }
             count--;
         }
