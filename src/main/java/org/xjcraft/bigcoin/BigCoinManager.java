@@ -85,9 +85,7 @@ public class BigCoinManager {
                 put("people", winners.size() + "");
                 put("amount", String.format("%.2f", v));
             }});
-            if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
-                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(message));
-            }
+
             plugin.getServer().broadcastMessage(message);
             plugin.getLogger().info(message);
             plugin.getLogger().info("winners:" + StringUtil.join(winners.toArray(), ","));
@@ -106,7 +104,10 @@ public class BigCoinManager {
                         return;
                     }
                 }
-
+                if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+                    plugin.getLogger().info("send message to xjlogin");
+                    XJLogin.sendMessage(message);
+                }
             });
         } else {
             DataConfig.config.setBoost(DataConfig.config.getBoost() - Config.config.getBoostDecrease());
