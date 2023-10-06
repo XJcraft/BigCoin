@@ -82,7 +82,7 @@ public class BigCoinManager {
             DataConfig.config.setBoost(Math.min(DataConfig.config.getBoost() + 1, Config.config.getMaxBoost()));
             double v = Config.config.getBase() * ((Math.min(DataConfig.config.getBoost(), Config.config.getMaxBoost())) * Config.config.getBoost() + 1);
             String message = StringUtil.applyPlaceHolder(MessageConfig.config.getWinners(), new HashMap<String, String>() {{
-                put("people", winners.size() + "");
+                put("people", String.valueOf(winners.size()));
                 put("amount", String.format("%.2f", v));
             }});
 
