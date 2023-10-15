@@ -85,10 +85,15 @@ public class BigCoinManager {
                 put("people", String.valueOf(winners.size()));
                 put("amount", String.format("%.2f", v));
             }});
-
+            if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+                plugin.getLogger().info("send message to XJLogin");
+//                    XJLogin.sendMessage(message);
+                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(message));
+            }
             plugin.getServer().broadcastMessage(message);
             plugin.getLogger().info(message);
             plugin.getLogger().info("winners:" + StringUtil.join(winners.toArray(), ","));
+
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 BigDecimal price = new BigDecimal(v);
                 OperateResult result = CurrencyService.reserveIncr(Config.config.getCurrency(), price, Config.config.getOwner());
@@ -104,10 +109,7 @@ public class BigCoinManager {
                         return;
                     }
                 }
-                if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
-                    plugin.getLogger().info("send message to xjlogin");
-                    XJLogin.sendMessage(message);
-                }
+
             });
         } else {
             DataConfig.config.setBoost(DataConfig.config.getBoost() - Config.config.getBoostDecrease());
@@ -209,7 +211,7 @@ public class BigCoinManager {
         plugin.getLogger().info("generate or load quest:" + name);
         if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
             String message = "当前回合矿机需求为:" + name;
-            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(message));
+            plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> XJLogin.sendMessage(message), 20);
         }
     }
 
