@@ -88,7 +88,7 @@ public class BigCoinManager {
             if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
                 plugin.getLogger().info("send message to XJLogin");
 //                    XJLogin.sendMessage(message);
-                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(message));
+                plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> XJLogin.sendMessage(message), 10);
             }
             plugin.getServer().broadcastMessage(message);
             plugin.getLogger().info(message);
@@ -302,9 +302,9 @@ public class BigCoinManager {
         public void run() {
             if (count == 0) {
                 plugin.getServer().broadcastMessage(MessageConfig.config.getTimeOver());
-                if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
-                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(MessageConfig.config.getTimeOver()));
-                }
+//                if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+//                    plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> XJLogin.sendMessage(MessageConfig.config.getTimeOver()),0);
+//                }
                 count = Config.config.getPeriod();
                 checker();
 //                plugin.getServer().getScheduler().runTaskAsynchronously(plugin, BigCoinManager.this::checker);
@@ -313,9 +313,9 @@ public class BigCoinManager {
                     put("count", count + "");
                 }});
                 plugin.getServer().broadcastMessage(message);
-                if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
-                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(message));
-                }
+//                if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+//                    plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> XJLogin.sendMessage(message));
+//                }
             }
             count--;
         }
