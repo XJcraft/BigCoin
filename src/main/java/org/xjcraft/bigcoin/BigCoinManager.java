@@ -15,6 +15,8 @@ import org.bukkit.block.Hopper;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.xjcraft.annotation.RCommand;
+import org.xjcraft.api.CommonCommandExecutor;
 import org.xjcraft.bigcoin.api.XJLogin;
 import org.xjcraft.bigcoin.config.*;
 import org.xjcraft.utils.MathUtil;
@@ -24,7 +26,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
-public class BigCoinManager {
+public class BigCoinManager implements CommonCommandExecutor {
     private BigCoin plugin;
     private Timer timer = new Timer();
     Checker checker;
@@ -46,6 +48,24 @@ public class BigCoinManager {
         timer.schedule(checker, 1000L, 1000L * 60L);
     }
 
+    @RCommand("update")
+    public void update() {
+        HashSet<String> current = new HashSet<>(ItemsConfig.config.getItems());
+        HashSet<String> excludes = new HashSet<>(ItemsConfig.config.getExcludes());
+        for (Material value : Material.values()) {
+            if (value.getMaxStackSize() > 1) {
+                if (value.isItem()) {
+                    if (!current.contains(value.name()) && !excludes.contains(value.name())) {
+                        ItemsConfig.config.getPending().add(value.name());
+                    }
+                }
+
+            }
+        }
+        plugin.saveConfig(ItemsConfig.class);
+
+    }
+
     public void checker() {
         if (quest != null) {
             World world = plugin.getServer().getWorld(Config.config.getWorld());
@@ -60,7 +80,7 @@ public class BigCoinManager {
 
 
         } else {
-            if (ItemsConfig.config.getItems().size() == 0) {
+            if (ItemsConfig.config.getItems().isEmpty()) {
                 for (Material value : Material.values()) {
                     if (value.getMaxStackSize() > 1) {
                         if (value.isItem())

@@ -6,3 +6,12 @@ depend: [SimpleSpigot, MultiCurrency]
 softdepend:
   - XJLogin
 authors: [reezhu]
+
+commands:
+
+  BigCoin:
+    description: BigCoin command
+    usage: /<command>
+    aliases: [ bc ]
+    permission: bigcoin.admin
+    permission-message: You do not have permission to use this command.

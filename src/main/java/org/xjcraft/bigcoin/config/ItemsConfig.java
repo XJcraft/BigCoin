@@ -1,7 +1,6 @@
 package org.xjcraft.bigcoin.config;
 
 import lombok.Data;
-import org.bukkit.Material;
 import org.xjcraft.annotation.Instance;
 import org.xjcraft.annotation.RConfig;
 
@@ -14,4 +13,6 @@ public class ItemsConfig {
     @Instance
     public static ItemsConfig config = new ItemsConfig();
     List<String> items = new ArrayList<>();
+    List<String> excludes = new ArrayList<>();
+    List<String> pending = new ArrayList<>();
 }

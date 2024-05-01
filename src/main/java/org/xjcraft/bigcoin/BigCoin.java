@@ -9,8 +9,8 @@ public final class BigCoin extends CommonPlugin {
     public void onEnable() {
         // Plugin startup logic
         loadConfigs();
-
         manager = new BigCoinManager(this);
+        this.registerCommand(manager);
         getServer().getPluginManager().registerEvents(new HoverListener(this, manager), this);
     }
 
