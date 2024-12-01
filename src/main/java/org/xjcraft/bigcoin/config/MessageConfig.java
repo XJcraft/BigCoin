@@ -14,5 +14,5 @@ public class MessageConfig {
     String createMinerFail = "注册矿机失败！";
     String timeLeft = "距离本轮挖矿结束还剩%count%分钟。";
     String timeOver = "本轮挖矿已结束！";
-    String winners = "共有%people%分享了%amount%国债！";
+    String winners = "共有%people%分享了%amount%国债！当前连击数：%boost%";
 }

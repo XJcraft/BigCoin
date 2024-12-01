@@ -119,8 +119,9 @@ public class BigCoinManager implements CommonCommandExecutor {
             String message = StringUtil.applyPlaceHolder(MessageConfig.config.getWinners(), new HashMap<String, String>() {{
                 put("people", String.valueOf(winners.size()));
                 put("amount", String.format("%.2f", v));
+                put("boost", String.format("%s", DataConfig.config.getBoost()));
             }});
-            if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+            if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null || DataConfig.config.getBoost() < 5) {
                 plugin.getLogger().info("send message to XJLogin");
 //                    XJLogin.sendMessage(message);
                 plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> XJLogin.sendMessage(message), 10);
@@ -244,10 +245,10 @@ public class BigCoinManager implements CommonCommandExecutor {
             name += ";";
         }
         plugin.getLogger().info("generate or load quest:" + name);
-        if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
-            String message = "当前回合矿机需求为:" + name;
-            plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> XJLogin.sendMessage(message), 20);
-        }
+//        if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null) {
+//            String message = "当前回合矿机需求为:" + name;
+//            plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> XJLogin.sendMessage(message), 20);
+//        }
     }
 
     public void refresh(Block block) {
