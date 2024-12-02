@@ -121,7 +121,7 @@ public class BigCoinManager implements CommonCommandExecutor {
                 put("amount", String.format("%.2f", v));
                 put("boost", String.format("%s", DataConfig.config.getBoost()));
             }});
-            if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null || DataConfig.config.getBoost() < 5) {
+            if (plugin.getServer().getPluginManager().getPlugin("XJLogin") != null && DataConfig.config.getBoost() >= 5) {
                 plugin.getLogger().info("send message to XJLogin");
 //                    XJLogin.sendMessage(message);
                 plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> XJLogin.sendMessage(message), 10);
