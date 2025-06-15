@@ -6,12 +6,10 @@ import com.zjyl1994.minecraftplugin.multicurrency.utils.OperateResult;
 import com.zjyl1994.minecraftplugin.multicurrency.utils.TxTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Hopper;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -32,6 +30,7 @@ public class BigCoinManager implements CommonCommandExecutor {
     Checker checker;
     Material[] quest = null;
     int[] needs = null;
+    private final Set<String> spawns = new HashSet<>();
 
     public BigCoinManager(BigCoin plugin) {
         this.plugin = plugin;
@@ -46,6 +45,59 @@ public class BigCoinManager implements CommonCommandExecutor {
             printQuest();
         }
         timer.schedule(checker, 1000L, 1000L * 60L);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Chunk chunk = Bukkit.getServer().getWorld("MainLand").getSpawnLocation().getChunk();
+            for (int i = -1; i < 2; i++) {
+                for (int j = -1; j < 2; j++) {
+                    spawns.add(String.format("%s,%s", chunk.getX() + i, chunk.getZ() + j));
+                }
+            }
+        });
+
+    }
+
+    @RCommand("valid")
+    public void valid(CommandSender sender) {
+        Map<String, Map<String, String>> hoppers = MinersConfig.config.getHoppers();
+        ArrayList<Map.Entry<String, Map<String, String>>> list = new ArrayList<>(hoppers.entrySet());
+        LinkedHashMap<String, Map<String, String>> newMap = new LinkedHashMap<>();
+        Bukkit.getLogger().info("[BigCoinManager] valid start");
+        runValid(list, newMap);
+
+    }
+
+    private void runValid(ArrayList<Map.Entry<String, Map<String, String>>> list, LinkedHashMap<String, Map<String, String>> newMap) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!list.isEmpty()) {
+                Map.Entry<String, Map<String, String>> entry = list.get(0);
+                list.remove(0);
+                String chunk = entry.getKey();
+                String[] split = chunk.split(",");
+                World mainLand = Bukkit.getServer().getWorld("MainLand");
+                Chunk chunkAt = Objects.requireNonNull(mainLand).getChunkAt(Integer.parseInt(split[0]), Integer.parseInt(split[1]));
+                if (!chunkAt.isLoaded()) {
+                    chunkAt.load();
+                }
+                LinkedHashMap<String, String> values = new LinkedHashMap<>();
+                entry.getValue().forEach((k, v) -> {
+                    String[] strings = k.split(",");
+                    Block block = mainLand.getBlockAt(Integer.parseInt(strings[0]), Integer.parseInt(strings[1]), Integer.parseInt(strings[2]));
+                    if (block.getState() instanceof Hopper) {
+                        values.put(k, v);
+                    } else {
+                        Bukkit.getLogger().warning("[BigCoinManager] " + k + " is not a Hopper");
+                    }
+                });
+                if (!values.isEmpty()) {
+                    newMap.put(chunk, values);
+                }
+                runValid(list, newMap);
+            } else {
+                MinersConfig.config.setHoppers(newMap);
+                plugin.saveConfig(MinersConfig.class);
+                Bukkit.getLogger().info("[BigCoinManager] valid done");
+            }
+        });
     }
 
     @RCommand("update")
@@ -81,6 +133,9 @@ public class BigCoinManager implements CommonCommandExecutor {
 
     }
 
+    /**
+     * 结算矿机
+     */
     public void checker() {
         if (quest != null) {
             World world = plugin.getServer().getWorld(Config.config.getWorld());
@@ -113,7 +168,7 @@ public class BigCoinManager implements CommonCommandExecutor {
 
     public void check2(World world) {
         List<String> winners = getWinners(world);
-        if (winners.size() > 0) {
+        if (!winners.isEmpty()) {
             DataConfig.config.setBoost(Math.min(DataConfig.config.getBoost() + 1, Config.config.getMaxBoost()));
             double v = Config.config.getBase() * ((Math.min(DataConfig.config.getBoost(), Config.config.getMaxBoost())) * Config.config.getBoost() + 1);
             String message = StringUtil.applyPlaceHolder(MessageConfig.config.getWinners(), new HashMap<String, String>() {{
@@ -159,14 +214,21 @@ public class BigCoinManager implements CommonCommandExecutor {
 
         for (Chunk chunk : loadedChunks) {
             if (!chunk.isLoaded()) continue;
-            Map<String, String> map = MinersConfig.config.getHoppers().get(String.format("%s,%s", chunk.getX(), chunk.getZ()));
+            String chunkKey = String.format("%s,%s", chunk.getX(), chunk.getZ());
+            Map<String, String> map = MinersConfig.config.getHoppers().get(chunkKey);
             if (map == null) continue;
+            boolean insideSpawn = spawns.contains(chunkKey);
             for (Map.Entry<String, String> entry : map.entrySet()) {
                 try {
                     String position = entry.getKey();
                     String[] split = position.split(",");
                     Block block = world.getBlockAt(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
                     if (block.getState() instanceof Hopper) {
+                        if (insideSpawn) {
+                            //todo 未来搞成爆炸
+                            plugin.getLogger().info("inside spawn" + position);
+                            continue;
+                        }
                         Inventory inventory = ((Hopper) block.getState()).getInventory();
                         ItemStack[] contents = inventory.getContents();
                         if (isFinished(contents)) {
@@ -174,6 +236,7 @@ public class BigCoinManager implements CommonCommandExecutor {
                         }
                     }
                 } catch (Exception e) {
+                    plugin.getLogger().warning("fail to get winners:" + e.getMessage());
                     e.printStackTrace();
                 }
 
