@@ -36,6 +36,19 @@ public class BigCoinManager implements CommonCommandExecutor {
         put("WALL_SIGN", "OAK_WALL_SIGN");
     }};
 
+    /**
+     * 酿造台配方不在 Bukkit 的 Recipe 体系内（26.2 无 BrewingRecipe 类，
+     * recipeIterator() 不返回酿造配方），这里硬编码酿造原料清单，并入 craftable。
+     * 清单来自 1.21 服务端 PotionBrewer 字节码；不存在的项由 resolveMaterial 自动跳过。
+     */
+    private static final String[] BREWING_MATERIALS = {
+            "NETHER_WART", "GLOWSTONE_DUST", "REDSTONE", "SUGAR", "RABBIT_FOOT",
+            "GOLDEN_CARROT", "GLISTERING_MELON_SLICE", "MAGMA_CREAM", "BLAZE_POWDER",
+            "GHAST_TEAR", "FERMENTED_SPIDER_EYE", "SPIDER_EYE", "PUFFERFISH",
+            "GUNPOWDER", "DRAGON_BREATH", "TURTLE_HELMET", "PHANTOM_MEMBRANE",
+            "SLIME_BLOCK", "STONE", "COBWEB", "BREEZE_ROD"
+    };
+
     private BigCoin plugin;
     private Timer timer = new Timer();
     Checker checker;
