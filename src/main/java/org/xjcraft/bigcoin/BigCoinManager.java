@@ -40,7 +40,7 @@ public class BigCoinManager implements CommonCommandExecutor {
         put("SCUTE", "TURTLE_SCUTE");
         put("GRASS_PATH", "DIRT_PATH");
         put("SIGN", "OAK_SIGN");
-        put("WALL_SIGN", "OAK_WALL_SIGN");
+        put("CHAIN", "IRON_CHAIN");
     }};
 
     /**
@@ -201,6 +201,19 @@ public class BigCoinManager implements CommonCommandExecutor {
         return craftable;
     }
 
+    private Set<String> collectKnownMaterials() {
+        Set<String> known = new HashSet<>();
+        for (String name : ItemsConfig.config.getItems()) {
+            Material material = resolveMaterial(name);
+            known.add(material == null ? name : material.name());
+        }
+        for (String name : ItemsConfig.config.getExcludes()) {
+            Material material = resolveMaterial(name);
+            known.add(material == null ? name : material.name());
+        }
+        return known;
+    }
+
     /**
      * 扫描全部 Material，把不在 items/excludes 里的物品按是否命中 craftable 分流。
      * craftable 为空时中止，避免把所有物品误判进黑名单。
@@ -213,8 +226,7 @@ public class BigCoinManager implements CommonCommandExecutor {
             return;
         }
 
-        Set<String> known = new HashSet<>(ItemsConfig.config.getItems());
-        known.addAll(ItemsConfig.config.getExcludes());
+        Set<String> known = collectKnownMaterials();
 
         List<String> addedToItems = new ArrayList<>();
         List<String> addedToExcludes = new ArrayList<>();
