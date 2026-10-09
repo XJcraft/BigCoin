@@ -15,6 +15,8 @@
 
 ---
 
+> **执行顺序注记(实施中修正):** Task 1 与 Task 5 存在硬依赖——`BigCoinManager#update()` 第 251 行引用了 `getPending()`,删字段会让编译失败。因此两者必须同一个提交:先做 Task 5 的 `update()` 改写,再做 Task 1 的字段删除。下文的 Task 1 内容保留,但实际按「Task 5 → Task 1」顺序在同一 commit 内完成。
+
 ### Task 1: 删除 `ItemsConfig#pending` 字段
 
 **Files:**
