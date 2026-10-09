@@ -106,7 +106,7 @@ public class BigCoinManager implements CommonCommandExecutor {
         try {
             if (choice instanceof RecipeChoice.MaterialChoice) {
                 List<Material> materials = ((RecipeChoice.MaterialChoice) choice).getChoices();
-                if (materials != null) {
+                if (materials != null && !materials.isEmpty()) {
                     for (Material material : materials) {
                         if (material != null) out.add(material);
                     }
@@ -114,7 +114,7 @@ public class BigCoinManager implements CommonCommandExecutor {
                 }
             } else if (choice instanceof RecipeChoice.ExactChoice) {
                 List<ItemStack> stacks = ((RecipeChoice.ExactChoice) choice).getChoices();
-                if (stacks != null) {
+                if (stacks != null && !stacks.isEmpty()) {
                     for (ItemStack stack : stacks) {
                         if (stack != null && stack.getType() != null) out.add(stack.getType());
                     }
