@@ -11,8 +11,15 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Hopper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.CookingRecipe;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.RecipeChoice;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.SmithingRecipe;
+import org.bukkit.inventory.StonecuttingRecipe;
 import org.xjcraft.annotation.RCommand;
 import org.xjcraft.api.CommonCommandExecutor;
 import org.xjcraft.bigcoin.api.XJLogin;
@@ -87,6 +94,159 @@ public class BigCoinManager implements CommonCommandExecutor {
         if (material.isLegacy()) return null;
         if (!material.isItem()) return null;
         return material;
+    }
+
+    /**
+     * 把单个 RecipeChoice 展开成 Material 集合。
+     * MaterialChoice#getChoices() 返回 List&lt;Material&gt;，
+     * ExactChoice#getChoices() 返回 List&lt;ItemStack&gt;，签名不同必须分支。
+     */
+    private void collectRecipeChoices(RecipeChoice choice, Set<Material> out) {
+        if (choice == null) return;
+        try {
+            if (choice instanceof RecipeChoice.MaterialChoice) {
+                List<Material> materials = ((RecipeChoice.MaterialChoice) choice).getChoices();
+                if (materials != null) {
+                    for (Material material : materials) {
+                        if (material != null) out.add(material);
+                    }
+                    return;
+                }
+            } else if (choice instanceof RecipeChoice.ExactChoice) {
+                List<ItemStack> stacks = ((RecipeChoice.ExactChoice) choice).getChoices();
+                if (stacks != null) {
+                    for (ItemStack stack : stacks) {
+                        if (stack != null && stack.getType() != null) out.add(stack.getType());
+                    }
+                    return;
+                }
+            }
+            ItemStack single = choice.getItemStack();
+            if (single != null && single.getType() != null) out.add(single.getType());
+        } catch (Throwable t) {
+            plugin.getLogger().warning("解析配方材料失败，已跳过:" + t.getMessage());
+        }
+    }
+
+    /**
+     * 按 Recipe 类型分派提取材料 Material。
+     * TransmuteRecipe / ImbueRecipe 是 1.21.5+ 的类，旧服务端不存在，一律反射访问，
+     * 避免类引用触发 NoClassDefFoundError。
+     */
+    private void collectRecipeIngredients(Recipe recipe, Set<Material> out) {
+        try {
+            if (recipe instanceof ShapedRecipe) {
+                for (RecipeChoice choice : ((ShapedRecipe) recipe).getChoiceMap().values()) {
+                    collectRecipeChoices(choice, out);
+                }
+            } else if (recipe instanceof ShapelessRecipe) {
+                for (RecipeChoice choice : ((ShapelessRecipe) recipe).getChoiceList()) {
+                    collectRecipeChoices(choice, out);
+                }
+            } else if (recipe instanceof CookingRecipe) {
+                collectRecipeChoices(((CookingRecipe<?>) recipe).getInputChoice(), out);
+            } else if (recipe instanceof StonecuttingRecipe) {
+                collectRecipeChoices(((StonecuttingRecipe) recipe).getInputChoice(), out);
+            } else if (recipe instanceof SmithingRecipe) {
+                collectRecipeChoices(((SmithingRecipe) recipe).getBase(), out);
+                collectRecipeChoices(((SmithingRecipe) recipe).getAddition(), out);
+                invokeChoice(recipe, "getTemplate", out);
+            } else {
+                invokeChoice(recipe, "getInput", out);
+                invokeChoice(recipe, "getMaterial", out);
+            }
+        } catch (Throwable t) {
+            plugin.getLogger().warning("解析配方失败，已跳过:" + t.getMessage());
+        }
+    }
+
+    /**
+     * 反射调用无参方法，期望返回 RecipeChoice，展开后并入 out。
+     * 方法不存在 / 返回类型不符 / 抛异常，一律静默跳过。
+     */
+    private void invokeChoice(Object target, String method, Set<Material> out) {
+        try {
+            Object result = target.getClass().getMethod(method).invoke(target);
+            if (result instanceof RecipeChoice) {
+                collectRecipeChoices((RecipeChoice) result, out);
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /**
+     * 遍历服务端全部配方，构建「可合成材料」集合：任一配方的产物或材料都算命中。
+     * 另并入硬编码的酿造材料清单（酿造不在 Recipe 体系内）。
+     */
+    private Set<Material> collectCraftableMaterials() {
+        Set<Material> craftable = new HashSet<>();
+        Iterator<Recipe> iterator = plugin.getServer().recipeIterator();
+        while (iterator.hasNext()) {
+            Recipe recipe = iterator.next();
+            if (recipe == null) continue;
+            try {
+                ItemStack result = recipe.getResult();
+                if (result != null && result.getType() != null) {
+                    craftable.add(result.getType());
+                }
+            } catch (Throwable t) {
+                plugin.getLogger().warning("读取配方产物失败，已跳过:" + t.getMessage());
+            }
+            collectRecipeIngredients(recipe, craftable);
+        }
+        for (String name : BREWING_MATERIALS) {
+            Material material = resolveMaterial(name);
+            if (material != null) craftable.add(material);
+        }
+        return craftable;
+    }
+
+    /**
+     * 扫描全部 Material，把不在 items/excludes 里的物品按是否命中 craftable 分流。
+     * craftable 为空时中止，避免把所有物品误判进黑名单。
+     */
+    private void classifyItems(CommandSender sender) {
+        Set<Material> craftable = collectCraftableMaterials();
+        if (craftable.isEmpty()) {
+            plugin.getLogger().warning("未从服务端取得任何配方，已中止归类");
+            if (sender != null) sender.sendMessage("未取得任何配方，已中止归类");
+            return;
+        }
+
+        Set<String> known = new HashSet<>(ItemsConfig.config.getItems());
+        known.addAll(ItemsConfig.config.getExcludes());
+
+        List<String> addedToItems = new ArrayList<>();
+        List<String> addedToExcludes = new ArrayList<>();
+
+        for (Material value : Material.values()) {
+            if (value.isLegacy() || !value.isItem() || value.getMaxStackSize() <= 1) continue;
+            if (known.contains(value.name())) continue;
+            if (craftable.contains(value)) {
+                ItemsConfig.config.getItems().add(value.name());
+                addedToItems.add(value.name());
+            } else {
+                ItemsConfig.config.getExcludes().add(value.name());
+                addedToExcludes.add(value.name());
+            }
+        }
+
+        plugin.saveConfig(ItemsConfig.class);
+
+        plugin.getLogger().info("归类完成：新增到 items " + addedToItems.size()
+                + " 项，归入 excludes " + addedToExcludes.size() + " 项");
+        plugin.getLogger().info("新增到 items:" + StringUtil.join(addedToItems.toArray(), ","));
+        plugin.getLogger().info("归入 excludes:" + StringUtil.join(addedToExcludes.toArray(), ","));
+
+        if (sender != null) {
+            sender.sendMessage("归类完成：items +" + addedToItems.size()
+                    + "，excludes +" + addedToExcludes.size());
+        }
+
+        if (ItemsConfig.config.getItems().size() < 5) {
+            plugin.getLogger().warning("items 少于 5 项，矿机可能无法正常刷新");
+            if (sender != null) sender.sendMessage("警告：items 少于 5 项");
+        }
     }
 
     /**
