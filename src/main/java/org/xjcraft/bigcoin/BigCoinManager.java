@@ -240,28 +240,16 @@ public class BigCoinManager implements CommonCommandExecutor {
     }
 
     @RCommand("update")
-    public void update() {
-        HashSet<String> current = new HashSet<>(ItemsConfig.config.getItems());
-        HashSet<String> excludes = new HashSet<>(ItemsConfig.config.getExcludes());
+    public void update(CommandSender sender) {
+        classifyItems(sender);
 
-        for (Material value : Material.values()) {
-            if (value.getMaxStackSize() > 1) {
-                if (value.isItem()) {
-                    if (!current.contains(value.name()) && !excludes.contains(value.name())) {
-                        ItemsConfig.config.getPending().add(value.name());
-                    }
-                }
-
-            }
-        }
-
-        for (String s : current) {
+        for (String s : new ArrayList<>(ItemsConfig.config.getItems())) {
             if (resolveMaterial(s) == null) {
                 plugin.getLogger().info("remove deprecated material:" + s);
                 ItemsConfig.config.getItems().remove(s);
             }
         }
-        for (String s : excludes) {
+        for (String s : new ArrayList<>(ItemsConfig.config.getExcludes())) {
             if (resolveMaterial(s) == null) {
                 plugin.getLogger().info("remove deprecated material:" + s);
                 ItemsConfig.config.getExcludes().remove(s);
@@ -269,7 +257,6 @@ public class BigCoinManager implements CommonCommandExecutor {
         }
 
         plugin.saveConfig(ItemsConfig.class);
-
     }
 
     /**

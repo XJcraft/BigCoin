@@ -14,5 +14,4 @@ public class ItemsConfig {
     public static ItemsConfig config = new ItemsConfig();
     List<String> items = new ArrayList<>();
     List<String> excludes = new ArrayList<>();
-    List<String> pending = new ArrayList<>();
 }
